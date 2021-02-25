@@ -23,25 +23,25 @@ globalVariables(c("dist", "theta.bound.list", "formals.dist", "ndistparams", "di
 }
 
 
-## Purpose: Constructor for 'Mix' (normal mixture) objects
+## Purpose: Constructor for 'Mix' mixture objects
 
 #' @title Mixtures of Univariate Distributions
 #'
-#' @description Objects of class \code{Mix} represent finite mixtures of any univariate distribution. Methods for construction, printing and plotting are provided.
+#' @description Function constructing objects of class \code{Mix} that represent finite mixtures of any univariate distribution. Additionally methods for printing and plotting are provided.
 #'
-#' @details Note that the \code{Mix} function will change the random number generator (RNG) state.
 #' @aliases Mix print.Mix is.Mix
 #' @usage
-#' Mix(dist, w=NULL, theta.list=NULL, name=NULL, \dots)
+#' Mix(dist, discrete, w = NULL, theta.list = NULL, name = NULL, \dots)
 #'
 #' is.Mix(x)
-#' @param dist a character string giving the (abbreviated) name of the component distribution, such that the function \code{ddist} evaluates its density function and \code{rdist} generates random numbers. For example, to create a gaussian mixture, \code{dist} has to be specified as \code{norm} instead of \code{normal}, \code{gaussian} etc. for the package to find the functions \code{dnorm} and \code{rnorm}.
-#' @param w numeric vector of length \eqn{p}, specifying the mixture weights \eqn{w[i]} of the components, \eqn{i = 1,\dots,p}. If the weights don't add up to 1, they will be scaled accordingly. Uses equal weights for all components by default.
-#' @param theta.list named list specifying the component parameters. The names of the list elements have to match the names of the formal arguments of the functions \code{ddist} and \code{rdist} exactly. For a gaussian mixture, the list elements would have to be named \code{mean} and \code{sd}, as these are the formal arguments used by \code{rnorm} and \code{dnorm}. Alternatively, the component parameters can be supplied directly as named vectors of length \eqn{p} via \dots
+#' @param dist character string providing the (abbreviated) name of the component distribution, such that the function \code{ddist} evaluates its density function and \code{rdist} generates random numbers. The function sources functions for the density/mass estimation and random variate generation from distributions in \code{\link[stats]{distributions}}, so the abbreviations should be specified accordingly. Thus to create a gaussian mixture, set \code{dist = "norm"}, for a poisson mixture, set \code{dist = "pois"}. The \code{Mix} function will find the functions \code{dnorm}, \code{rnorm} and \code{dpois}, \code{rpois} respectively.
+#' @param discrete logical flag, should be set to TRUE if the mixture distribution is discrete and to FALSE if continuous.
+#' @param w numeric vector of length \eqn{p}, specifying the mixture weights \eqn{w[i]} of the components, \eqn{i = 1,\dots,p}. If the weights do not add up to 1, they will be scaled accordingly. Equal weights for all components are used by default.
+#' @param theta.list named list specifying the component parameters. The names of the list elements have to match the names of the formal arguments of the functions \code{ddist} and \code{rdist} exactly. For a gaussian mixture, the list elements would have to be named \code{mean} and \code{sd}, as these are the formal arguments used by \code{rnorm} and \code{dnorm} functions from \code{\link[stats]{distributions}}. Alternatively, the component parameters can be supplied directly as named vectors of length \eqn{p} via \dots
 #' @param name optional name tag of the result (used for printing and plotting).
 #' @param x
 #'    \describe{
-#'      \item{in \code{is.Mix()}:}{R object.}
+#'      \item{in \code{is.Mix()}:}{returns TRUE if the argument is a \code{datMix} object and FALSE otherwise.}
 #'      \item{in \code{print.Mix()}:}{object of class \code{Mix}.}
 #' }
 #' @param \dots
@@ -52,27 +52,32 @@ globalVariables(c("dist", "theta.bound.list", "formals.dist", "ndistparams", "di
 #' @return An object of class \code{Mix} (implemented as a matrix) with the following attributes:
 #'     \item{dim}{dimensions of the matrix.}
 #'     \item{dimnames}{a \code{\link[base]{dimnames}} attribute for the matrix.}
-#'     \item{name}{as entered via \code{name}.}
-#'     \item{dist}{as entered via \code{dist}.}
-#'     \item{discrete}{logical indicating whether the mixture distribution is discrete.}
-#'     \item{theta.list}{as entered via \code{theta.list}.}
-#' @seealso \code{\link{dMix}} for the density, \code{\link{rMix}} for random numbers (and construction of an \code{rMix} object) and \code{plot.Mix} for the plot method.
+#'     \item{name}{optional name tag for the result passed on to printing and plotting methods.}
+#'     \item{dist}{character string giving the abbreviated name of the component distribution, such that the function \code{ddist} evaluates its density/mass and \code{rdist} generates random variates.}
+#'     \item{discrete}{logical flag indicating whether the mixture distribution is discrete.}
+#'     \item{theta.list}{named list specifying component parameters.}
+#' @seealso \code{\link{dMix}} for the density, \code{\link{rMix}} for random numbers (and construction of an \code{rMix} object) and \code{\link{plot.Mix}} for the plot method.
 #' @keywords cluster
 #' @examples
 #'
 #' # define 'Mix' object
-#' normLocMix <- Mix("norm", w = c(0.3, 0.4, 0.3), mean = c(10, 13, 17), sd = c(1, 1, 1))
-#' poisMix <- Mix("pois", w = c(0.45, 0.45, 0.1), lambda = c(1, 5, 10))
+#' normLocMix <- Mix("norm", discrete = FALSE, w = c(0.3, 0.4, 0.3), mean = c(10, 13, 17),
+#'                   sd = c(1, 1, 1))
+#' poisMix <- Mix("pois", discrete = TRUE, w = c(0.45, 0.45, 0.1), lambda = c(1, 5, 10))
 #'
 #' # plot 'Mix' object
 #' plot(normLocMix)
 #' plot(poisMix)
 #'
 #' @export Mix
-Mix <- function(dist, w = NULL, theta.list = NULL, name = NULL, ...){
+Mix <- function(dist, discrete, w = NULL, theta.list = NULL, name = NULL, ...){
 
-  if(!is.character(dist)) stop("'dist' needs to be a character string specfying the
+  if(!is.character(dist)) stop("'dist' needs to be a character string specifying the
                                distribution of the mixture components!")
+
+  if(!is.logical(discrete)) stop("'discrete' needs to be a boolean specifying whether the
+                                   distribution is discrete!")
+
   if(!is.null(theta.list))
     if(!is.list(theta.list))
       stop("Input to theta.list has to be of class 'list'!")
@@ -92,6 +97,7 @@ Mix <- function(dist, w = NULL, theta.list = NULL, name = NULL, ...){
     len <- sapply(x, length)
     diff(range(len)) < .Machine$double.eps
   }
+
   if(!equal.length(theta.list))
     stop("The elements of theta.list (or the inputs to ...) must be of equal length!")
 
@@ -155,22 +161,13 @@ Mix <- function(dist, w = NULL, theta.list = NULL, name = NULL, ...){
     stop(paste("The names of theta.list do not match the names of the formal arguments
                of the function d", dist, sep = ""))
 
-  # check whether the resulting mixture distribution is discrete
-  is.int <- function(j){
-    is.integer(do.call(dist_call_r,
-                       args = c(n = 1, lapply(theta.list, function (x) x[j]))))
-  }
-  rand <- mapply(is.int, 1:p)
-  if(sum(rand) == p) discrete <- TRUE
-  else discrete <- FALSE
-
   structure(name = name, dist = dist, discrete = discrete, theta.list = theta.list, class = "Mix",
             .Data = dat)
 }
 
 
 
-## Purpose: is 'obj' a "Mix", i.e. a mixture object?
+## Purpose: check whether 'obj' is a "Mix" object (auxiliary function)
 
 is.Mix <- function(x){
 
@@ -197,36 +194,36 @@ is.Mix <- function(x){
 ## Purpose: plot method for "Mix" objects (mixtures)
 #' @title \code{plot} Method for \code{\link{Mix}} Objects
 #'
-#' @description \code{plot} method for \code{\link{Mix}} objects visualizing the mixture density, optionally showing the component densities.
+#' @description \code{plot} method for \code{\link{Mix}} objects visualizing the mixture density, with an option of showing the component densities.
 #'
 #' @param x object of class \code{Mix}.
-#' @param ylim range of y values to use; if not specified (or containing \code{NA}), the function tries to construct reasonable default values.
-#' @param xlim range of x values to use; particularly important if \code{xout} is not specified. If both are left unspecified, the function tries to construct reasonable default values.
+#' @param ylim range of y values to use, if not specified (or containing \code{NA}), the function tries to construct reasonable default values.
+#' @param xlim range of x values to use, particularly important if \code{xout} is not specified. If not specified, the function tries to construct reasonable default values.
 #' @param xout numeric or \code{NULL} giving the abscissae at which to draw the density.
 #' @param n number of points to generate if \code{xout} is unspecified (for continuous distributions).
-#' @param type character denoting the type of plot, see e.g. \code{\link[graphics]{lines}}. Defaults to \code{"l"} if the mixture distribution is continuous and to \code{"h"} otherwise.
+#' @param type character denoting the type of plot, see e.g. \code{\link[graphics]{lines}}. Defaults to \code{"l"} if the mixture distribution is continuous and to \code{"h"} if discrete.
 #' @param xlab,ylab labels for the x and y axis with defaults.
-#' @param main main title of plot, defaulting to the \code{\link{Mix}} name.
-#' @param lwd line width for plotting with a non-standard default.
-#' @param log logical; if \code{TRUE}, probabilities/densities \eqn{f} are plotted as \eqn{log(f)}. Only works if \code{components} is set to \code{FALSE}.
-#' @param h0 logical indicating whether the line \eqn{y = 0} should be drawn.
-#' @param components logical indicating whether the individual mixture components should be plotted, set to \code{TRUE} by default.
+#' @param main main title of plot, defaulting to the \code{\link{Mix}} object name.
+#' @param lwd line width for plotting, a positive number.
+#' @param log logical flag, if \code{TRUE}, probabilities/densities \eqn{f} are plotted as \eqn{log(f)}. Only works if \code{components} is set to \code{FALSE}.
+#' @param h0 logical flag indicating whether the line \eqn{y = 0} should be drawn.
+#' @param components logical flag indicating whether the individual mixture components should be plotted, set to \code{TRUE} by default.
 #' @param parH0 graphical parameters for drawing the line \eqn{y = 0} if \code{h0} is set to \code{TRUE}.
 #' @param parComp graphical parameters for drawing the individual components if \code{components} is set to \code{TRUE}.
-#' @param  \dots further arguments passed to the function plotting the mixture density.
-#' @seealso \code{\link{Mix}} for the construction of \code{Mix} objects, \code{\link{dMix}} for the density of a mixture.
+#' @param  \dots further arguments passed to the function for plotting the mixture density.
+#' @seealso \code{\link{Mix}} for the construction of \code{Mix} objects, \code{\link{dMix}} for the density/mass of a mixture.
 #' @keywords cluster
 #' @examples
 #'
 #' # define 'Mix' object
-#' normLocMix <- Mix("norm", w = c(0.3, 0.4, 0.3), mean = c(10, 13, 17), sd = c(1, 1, 1))
-#' poisMix <- Mix("pois", w = c(0.45, 0.45, 0.1), lambda = c(1, 5, 10))
+#' normLocMix <- Mix("norm", discrete = FALSE, w = c(0.3, 0.4, 0.3), mean = c(10, 13, 17),
+#'                   sd = c(1, 1, 1))
+#' poisMix <- Mix("pois", discrete = TRUE, w = c(0.45, 0.45, 0.1), lambda = c(1, 5, 10))
 #'
 #' # plot 'Mix' object
 #' plot(normLocMix)
 #' plot(poisMix)
 #'
-#' @rdname Mix
 #' @method plot Mix
 #' @export
 plot.Mix <- function(x, ylim, xlim = NULL, xout = NULL, n = 511, type = NULL,
@@ -337,20 +334,21 @@ print.Mix <- function(x, ...){
 ## Purpose: density evaluation for "Mix" objects (mixtures)
 #' @title Mixture density
 #'
-#' @description Evaluate the (log) density function of a mixture specified as \code{Mix} object.
+#' @description Evaluation of the (log) density function of a mixture specified as a \code{Mix} object.
 #'
 #' @usage
 #' dMix(x, obj, log = FALSE)
 #' @param x vector of quantiles.
 #' @param obj object of class \code{\link{Mix}}.
-#' @param log logical; if \code{TRUE}, probabilities/densities \eqn{f} are returned as \eqn{log(f)}.
-#' @return \code{dMix(x)} returns the numeric vector of probability values \eqn{f(x)}, logged if \code{log} is \code{TRUE}.
-#' @seealso \code{\link{Mix}} for the construction of \code{Mix} objects, \code{\link{rMix}} for random number generation (and construction of an \code{rMix} object) and \code{plot.Mix} which makes use of \code{\link{dMix}}.
+#' @param log logical flag, if \code{TRUE}, probabilities/densities \eqn{f} are returned as \eqn{log(f)}.
+#' @return \code{dMix(x)} returns a numeric vector of probability values \eqn{f(x)} and logarithm thereof if \code{log} is \code{TRUE}.
+#' @seealso \code{\link{Mix}} for the construction of \code{Mix} objects, \code{\link{rMix}} for random number generation (and construction of \code{rMix} objects) and \code{\link{plot.Mix}} for plotting the densities computed using \code{\link{dMix}}.
 #' @keywords cluster
 #' @examples
 #'
 #' # define 'Mix' object
-#' normLocMix <- Mix("norm", w = c(0.3, 0.4, 0.3), mean = c(10, 13, 17), sd = c(1, 1, 1))
+#' normLocMix <- Mix("norm", discrete = FALSE, w = c(0.3, 0.4, 0.3), mean = c(10, 13, 17),
+#'                   sd = c(1, 1, 1))
 #'
 #' # evaluate density at points x
 #' x <- seq(7, 20, length = 501)
@@ -386,13 +384,13 @@ dMix <- function(x, obj, log = FALSE){
 ## Purpose: Generate random numbers according to "Mix" object;
 ##          simultaneously creates an "rMix" object
 
-#' @title Generate a Random Sample from a Mixture Distribution
+#' @title Random Variate Generation from a Mixture Distribution
 #'
-#' @description Generate a random sample of size \code{n}, distributed according to a mixture specified as \code{\link{Mix}} object. Returns an object of class \code{\link{rMix}}.
+#' @description Function for generating a random sample of size \code{n}, distributed according to a mixture specified as \code{\link{Mix}} object. Returns an object of class \code{\link{rMix}}.
 #'
-#' @details For a mixture of \eqn{p} components, generate the number of observations in each component as multinomial, and then use an implemented random variate generation function for each component. The integer (multinomial) numbers are generated via \code{\link[base]{sample}}.
+#' @details For a mixture of \eqn{p} components, generates the number of observations in each component as multinomial, and then use an implemented random variate generation function for each component. The integer (multinomial) numbers are generated via \code{\link[base]{sample}}.
 #'
-#' @aliases rMix is.rMix print.rMix 
+#' @aliases rMix is.rMix print.rMix
 #' @usage
 #' rMix(n, obj)
 #'
@@ -408,16 +406,17 @@ dMix <- function(x, obj, log = FALSE){
 #' @return An object of class \code{\link{rMix}} with the following attributes (for further explanations see \code{\link{Mix}}):
 #'     \item{name}{name of the \code{Mix} object that was given as input.}
 #'     \item{dist}{character string stating the (abbreviated) name of the component distribution, such that the function \code{ddist} evaluates its density function and \code{rdist} generates random numbers.}
-#'     \item{discrete}{logical indicating whether the underlying mixture distribution is discrete.}
+#'     \item{discrete}{logical flag indicating whether the underlying mixture distribution is discrete.}
 #'     \item{theta.list}{named list specifying the parameter values of the \eqn{p} components.}
-#'     \item{w}{numeric vector of length \eqn{p}, specifying the mixture weights \eqn{w[i]} of the components, \eqn{i = 1,\dots,p}.}
+#'     \item{w}{numeric vector of length \eqn{p} specifying the mixture weights \eqn{w[i]} of the components, \eqn{i = 1,\dots,p}.}
 #'     \item{indices}{numeric vector of length \code{n} containing integers between \eqn{1} and \eqn{p} specifying which mixture component each observation belongs to.}
-#' @seealso \code{\link{dMix}} for the density, \code{\link{Mix}} for the construction of \code{Mix} objects and \code{plot.rMix} for the plot method.
+#' @seealso \code{\link{dMix}} for the density, \code{\link{Mix}} for the construction of \code{Mix} objects and \code{\link{plot.rMix}} for the plot method.
 #' @keywords cluster
 #' @examples
 #'
 #' # define 'Mix' object
-#' normLocMix <- Mix("norm", w = c(0.3, 0.4, 0.3), mean = c(10, 13, 17), sd = c(1, 1, 1))
+#' normLocMix <- Mix("norm", discrete = FALSE, w = c(0.3, 0.4, 0.3), mean = c(10, 13, 17),
+#'                   sd = c(1, 1, 1))
 #'
 #' # generate n random samples
 #' set.seed(1)
@@ -451,8 +450,7 @@ rMix <- function(n, obj){
 }
 
 
-## Purpose: is 'obj' a "rMix" object?
-#' @export is.rMix
+## Purpose: check whether 'obj' is an "rMix" object (auxiliary function)
 is.rMix <- function(x){
 
   obj <- x
@@ -483,29 +481,28 @@ is.rMix <- function(x){
 #'
 #' @param x object of class \code{rMix}.
 #' @param xlab label for the x axis with default.
-#' @param ylim range of y values to use; if not specified (or containing \code{NA}), default values are used.
-#' @param main main title of the plot with default.
+#' @param ylim range of y values to use, if not specified (or containing \code{NA}), default values are used.
+#' @param main main title of the plot, defaulting to the \code{\link{rMix}} object name.
 #' @param breaks see \code{\link[graphics]{hist}}. If left unspecified the function tries to construct reasonable default values.
-#' @param col a colour to be used to fill the bars of the histogram evaluated on the whole data.
-#' @param components logical indicating whether the plot should show to which component the observations belong (either by plotting individual histograms or by overlaying a stacked barplot), defaulting to \code{TRUE}. Ignored if \code{plot} is \code{FALSE}.
-#' @param stacked logical indicating whether the component plots should be stacked or plotted over one another, defaulting to \code{FALSE}. Ignored if \code{components} is \code{FALSE} or ignored itself.
-#' @param component.colors the colors for the component plots. If left unspecified default colors are used.
-#' @param freq logical, if \code{TRUE}, the histogram graphic is a representation of frequencies, if \code{FALSE}, probability densities. See \code{\link[graphics]{hist}}.
-#' @param plot logical, if \code{TRUE} (default), a histogram is plotted, otherwise a list of breaks and counts is returned. See \code{\link[graphics]{hist}}.
+#' @param col colour to be used to fill the bars of the histogram evaluated on the whole data.
+#' @param components logical flag indicating whether the plot should show to which component the observations belong (either by plotting individual histograms or by overlaying a stacked barplot), defaulting to \code{TRUE}. Ignored if \code{plot} is \code{FALSE}.
+#' @param stacked logical flag indicating whether the component plots should be stacked or plotted one over another, defaulting to \code{FALSE}. Ignored if \code{components} is \code{FALSE} or ignored itself.
+#' @param component.colors colors for the component plots. If unspecified, default colors are used.
+#' @param freq logical flag, if \code{TRUE}, the histogram graphic is a representation of frequencies, if \code{FALSE}, probability densities. See \code{\link[graphics]{hist}}.
+#' @param plot logical flag, if \code{TRUE} (default), a histogram is plotted, otherwise a list of breaks and counts is returned. See \code{\link[graphics]{hist}}.
 #' @param \dots further arguments passed to the histogram function evaluated on the whole data as well as the component data (if \code{components} is \code{TRUE} and \code{stacked} is \code{FALSE}).
-#' @seealso \code{\link{rMix}} for the creation of \code{rMix} objects.
+#' @seealso \code{\link{rMix}} for the construction of \code{rMix} objects.
 #' @keywords cluster
 #' @examples
 #'
 #' # define 'Mix' object
-#' normLocMix <- Mix("norm", w = c(0.3, 0.4, 0.3), mean = c(10, 13, 17), sd = c(1, 1, 1))
-#'
+#' normLocMix <- Mix("norm", discrete = FALSE, w = c(0.3, 0.4, 0.3), mean = c(10, 13, 17),
+#'                   sd = c(1, 1, 1))
 #' # generate n random samples
 #' set.seed(1)
 #' x <- rMix(1000, normLocMix)
 #' plot(x)
 #'
-#' @rdname rMix
 #' @method plot rMix
 #' @export
 plot.rMix <- function(x, xlab = attr(obj, "name"), ylim = NULL,
@@ -614,51 +611,51 @@ print.rMix <- function(x, ...){
 
 
 # Purpose: Constructor for 'datMix' objects, to be passed to functions estimating
-#          the mixture complexity, contains all "static" information about the data
+#          mixture complexity, contains all "static" information about the data
 
-#' @title Create Object for Which to Estimate the Mixture Complexity
+#' @title Constructor for Objects for Which to Estimate the Mixture Complexity
 #'
-#' @description Function to generate a \code{datMix} object to be passed to other \code{mixComp} functions used for estimating the mixture complexity.
+#' @description Function to generate objects of class \code{datMix} to be passed to other \code{mixComp} functions used for estimating mixture complexity.
 #'
 #' @details If the \code{datMix} object is supposed to be passed to a function that calculates the Hankel matrix of the moments of the mixing distribution (i.e. \code{\link{nonparamHankel}}, \code{\link{paramHankel}} or \code{\link{paramHankel.scaled}}), the arguments \code{Hankel.method} and \code{Hankel.function} have to be specified. The \code{Hankel.method}s that can be used to generate the estimate of the (raw) moments of the mixing distribution and the corresponding \code{Hankel.function}s are the following, where \eqn{j} specifies an estimate of the number of components:
 #'  \describe{
-#'     \item{\code{"explicit"}}{For this method, \code{Hankel.function} contains a function with arguments called \code{dat} and \code{j}, explicitly estimating the moments of the mixing distribution from the data and the currently assumed mixture complexity. Note that what Dacunha-Castelle & Gassiat (1997) called the "natural" estimator in their original paper is equivalent to using \code{"explicit"} with \code{Hankel.function} 
-#' \deqn{f_j((1/n) * sum_i(\psi_j(X_i))).}}
-#'     \item{\code{"translation"}}{This method corresponds to Dacunha-Castelle & Gassiat's (1997) example 3.1. It is applicable if the family of component distributions \eqn{(G_\theta)} is given by 
-#' \deqn{dG_\theta(x) = dG(x-\theta),} 
-#' where \eqn{G} is a known probability distribution whose moments can be given explicitly. \code{Hankel.function} contains a function of \eqn{j} returning the \eqn{j}th (raw) moment of \eqn{G}.}
-#'     \item{\code{"scale"}}{This method corresponds to Dacunha-Castelle & Gassiat's (1997) example 3.2. It is applicable if the family of component distributions \eqn{(G_\theta)} is given by 
-#' \deqn{dG_\theta(x) = dG(x / \theta),} 
-#' where \eqn{G} is a known probability distribution whose moments can be given explicitly. \code{Hankel.function} contains a function of \eqn{j} returning the \eqn{j}th (raw) moment of \eqn{G}.}
+#'     \item{\code{"explicit"}}{For this method, \code{Hankel.function} contains a function with arguments called \code{dat} and \code{j}, explicitly estimating the moments of the mixing distribution from the data and assumed mixture complexity at current iteration. Note that what Dacunha-Castelle & Gassiat (1997) called the "natural" estimator in their paper is equivalent to using \code{"explicit"} with \code{Hankel.function}
+#' \deqn{f_j((1/n) * \sum_i(\psi_j(X_i))).}}
+#'     \item{\code{"translation"}}{This method corresponds to Dacunha-Castelle & Gassiat's (1997) example 3.1. It is applicable if the family of component distributions \eqn{(G_\theta)} is given by
+#' \deqn{dG_\theta(x) = dG(x-\theta),}
+#' where \eqn{G} is a known probability distribution, such that its moments can be expressed explicitly. \code{Hankel.function} contains a function of \eqn{j} returning the \eqn{j}th (raw) moment of \eqn{G}.}
+#'     \item{\code{"scale"}}{This method corresponds to Dacunha-Castelle & Gassiat's (1997) example 3.2. It is applicable if the family of component distributions \eqn{(G_\theta)} is given by
+#' \deqn{dG_\theta(x) = dG(x / \theta),}
+#' where \eqn{G} is a known probability distribution, such that its moments can be expressed explicitly. \code{Hankel.function} contains a function of \eqn{j} returning the \eqn{j}th (raw) moment of \eqn{G}.}
 #'  }
-#' If the \code{datMix} object is supposed to be passed to a function that estimates the component weights and parameters (i.e. all but \code{\link{nonparamHankel}}), the argument \code{theta.bound.list} has to be specified, and \code{MLE.function} will be used in the estimation process if it is supplied (otherwise the MLE is found numerically).
-#'  Note that the \code{datMix} function will change the random number generator (RNG) state.
+#' If the \code{datMix} object is supposed to be passed to a function that estimates the component weights and parameters (i.e. all but \code{\link{nonparamHankel}}), the arguments \code{discrete} and \code{theta.bound.list} have to be specified, and \code{MLE.function} will be used in the estimation process if it is supplied (otherwise the MLE is found numerically).
 #' @aliases datMix is.datMix print.datMix
 #' @usage
-#' datMix(dat, dist, theta.bound.list = NULL, MLE.function = NULL, Hankel.method = NULL, 
-#'                                                               Hankel.function = NULL)
+#' datMix(dat, dist, discrete = NULL, theta.bound.list = NULL,
+#'        MLE.function = NULL, Hankel.method = NULL, Hankel.function = NULL)
 #'
 #' is.datMix(x)
-#' @param dat a numeric vector containing the observations from the mixture model.
-#' @param dist a character string giving the (abbreviated) name of the component distribution, such that the function \code{ddist} evaluates its density function and \code{rdist} generates random numbers. For example, to create a gaussian mixture, \code{dist} has to be specified as \code{norm} instead of \code{normal}, \code{gaussian} etc. for the package to find the functions \code{dnorm} and \code{rnorm}.
-#' @param theta.bound.list a named list specifying the upper and the lower bound for the component parameters. The names of the list elements have to match the names of the formal arguments of the functions \code{ddist} and \code{rdist} exactly. For a gaussian mixture, the list elements would have to be named \code{mean} and \code{sd}, as these are the formal arguments used by \code{rnorm} and \code{dnorm}. Has to be supplied if a method that estimates the component weights and parameters is to be used.
-#' @param MLE.function function (or list of functions) which takes as input the data and gives as output the maximum likelihood estimator for the parameter(s) of a one component mixture (i.e. the standard MLE of the component distribution \code{dist}).  If the component distribution has more than one parameter, a list of functions has to be supplied and the order of the MLE functions has to match the order of the component parameters in \code{theta.bound.list} (e.g. for a normal mixture, if the first entry of \code{theta.bound.list} is the bounds of the mean, then then first entry of \code{MLE.function} has to be the MLE of the mean). If this argument is supplied and the \code{datMix} object is handed over to a complexity estimation procedure relying on optimizing over a likelihood function, the \code{MLE.function} attribute will be used for the single component case. In case the objective function is either not a likelihood or corresponds to a mixture with more than 1 components, numerical optimization will be used based on \code{\link{Rsolnp}}'s function \code{solnp}, but \code{MLE.function} will be used to calculate the initial values passed to \code{solnp}. Specifying \code{MLE.function} is optional and if it is not, for example because the MLE solution does not exists in closed form, numerical optimization is used to find the relevant MLE'.
-#' @param Hankel.method character string in \code{c("explicit", "translation", "scale")},  specifying the method of estimating the moments of the mixing distribution used to calculate the relevant Hankel matrix. Has to be specified when using \code{nonparamHankel}, \code{paramHankel} or \code{paramHankel.scaled}. For further details see below.
-#' @param Hankel.function function needed for the moment estimation via \code{Hankel.method}. This normally depends on \code{Hankel.method} as well as \code{dist}. For further details see below.
+#' @param dat numeric vector containing observations from the mixture model.
+#' @param dist character string providing the (abbreviated) name of the component distribution, such that the function \code{ddist} evaluates its density function and \code{rdist} generates random numbers. The function sources functions for the density/mass estimation and random variate generation from distributions in \code{\link[stats]{distributions}}, so the abbreviations should be specified accordingly. Thus to create a gaussian mixture, set \code{dist = "norm"}, for a poisson mixture, set \code{dist = "pois"}. The \code{MixComp} functions will find the functions \code{dnorm}, \code{rnorm} and \code{dpois}, \code{rpois} respectively.
+#' @param discrete logical flag indicating whether the mixture distribution is discrete, required for methods that estimate component weights and parameters.
+#' @param theta.bound.list named list specifying the upper and lower bounds for the component parameters. The names of the list elements have to match the names of the formal arguments of the functions \code{ddist} and \code{rdist} exactly as specified in the distributions in \code{\link[stats]{distributions}}. For a gaussian mixture, the list elements would have to be named \code{mean} and \code{sd}, as these are the formal arguments used by \code{rnorm} and \code{dnorm}. Has to be supplied if a method that estimates the component weights and parameters is to be used.
+#' @param MLE.function function (or a list of functions) which takes the data as input and outputs the maximum likelihood estimator for the parameter(s) the component distribution \code{dist}. If the component distribution has more than one parameter, a list of functions has to be supplied and the order of the MLE functions has to match the order of the component parameters in \code{theta.bound.list} (e.g. for a normal mixture, if the first entry of \code{theta.bound.list} is the bounds of the mean, then then first entry of \code{MLE.function} has to be the MLE of the mean). If this argument is supplied and the \code{datMix} object is handed over to a complexity estimation procedure relying on optimizing over a likelihood function, the \code{MLE.function} attribute will be used for the single component case. In case the objective function is neither a likelihood nor corresponds to a mixture with more than 1 component, numerical optimization will be used based on \code{\link{Rsolnp}}'s function \code{\link[Rsolnp]{solnp}}, but \code{MLE.function} will be used to calculate the initial values passed to \code{solnp}. Specifying \code{MLE.function} is optional. If not supplied, for example because the MLE solution does not exist in a closed form, numerical optimization is used to find the relevant MLE.
+#' @param Hankel.method character string in \code{c("explicit", "translation", "scale")},  specifying the method of estimating the moments of the mixing distribution used to calculate the relevant Hankel matrix. Has to be specified when using \code{\link{nonparamHankel}}, \code{\link{paramHankel}} or \code{\link{paramHankel.scaled}}. For further details see below.
+#' @param Hankel.function function required for the moment estimation via \code{Hankel.method}. This normally depends on \code{Hankel.method} as well as \code{dist}. For further details see below.
 #' @param x
 #'   \describe{
-#'      \item{in \code{is.datMix()}:}{R object.}
+#'      \item{in \code{is.datMix()}:}{returns TRUE if the argument is a \code{datMix} object and FALSE otherwise.}
 #'      \item{in \code{print.datMix()}:}{object of class \code{datMix}.}
 #'  }
 #' @param \dots further arguments passed to the print method.
-#' @return An object of class \code{datMix} with the following attributes (for further explanations see above):
-#'      \item{dist}{}
-#'      \item{discrete}{logical indicating whether the underlying mixture distribution is discrete.}
-#'      \item{theta.bound.list}{}
-#'      \item{MLE.function}{}
-#'      \item{Hankel.method}{}
-#'      \item{Hankel.function}{}
-#' @seealso \code{\link{RtoDat}} for the conversion of \code{\link{rMix}} to \code{datMix} objects.
+#' @return Object of class \code{datMix} with the following attributes (for further explanations see above):
+#'      \item{dist}{character string giving the abbreviated name of the component distribution, such that the function \code{ddist} evaluates its density/mass and \code{rdist} generates random variates.}
+#'      \item{discrete}{logical flag indicating whether the mixture distribution is discrete.}
+#'      \item{theta.bound.list}{named list specifying the upper and lower bounds for the component parameters.}
+#'      \item{MLE.function}{function which computes the MLE of the component distribution \code{dist}.}
+#'      \item{Hankel.method}{character string taking on values \code{"explicit"}, \code{"translation"}, or \code{"scale"}, specifying the method of estimating the moments of the mixing distribution to compute the corresponding Hankel matrix.}
+#'      \item{Hankel.function}{function required for the moment estimation via \code{Hankel.method}. See details for more information.}
+#' @seealso \code{\link{RtoDat}} for conversion of \code{\link{rMix}} to \code{datMix} objects.
 #' @keywords cluster
 #' @examples
 #'
@@ -666,11 +663,8 @@ print.rMix <- function(x, ...){
 #' obs <- faithful$waiting
 #'
 #' ## generate list of parameter bounds (assuming gaussian components)
-#' norm.bound.list <- vector(mode = "list", length = 2)
-#' names(norm.bound.list) <- c("mean", "sd")
-#' norm.bound.list$mean <- c(-Inf, Inf)
-#' norm.bound.list$sd <- c(0, Inf)
-
+#' norm.bound.list <- list("mean" = c(-Inf, Inf), "sd" = c(0, Inf))
+#'
 #' ## generate MLE functions
 #' # for "mean"
 #' MLE.norm.mean <- function(dat) mean(dat)
@@ -691,9 +685,9 @@ print.rMix <- function(x, ...){
 #' }
 #'
 #' ## generate 'datMix' object
-#' faithful.dM <- datMix(obs, dist = "norm", theta.bound.list = norm.bound.list,
-#'                       MLE.function = MLE.norm.list, Hankel.method = "translation",
-#'                       Hankel.function = mom.std.norm)
+#' faithful.dM <- datMix(obs, dist = "norm", discrete = FALSE,
+#'                       theta.bound.list = norm.bound.list, MLE.function = MLE.norm.list,
+#'                       Hankel.method = "translation", Hankel.function = mom.std.norm)
 #'
 #' ## using 'datMix' object to estimate the mixture complexity
 #' set.seed(1)
@@ -701,25 +695,9 @@ print.rMix <- function(x, ...){
 #' plot(res)
 #'
 #' @export datMix
-datMix <- function(dat, dist, theta.bound.list = NULL, MLE.function = NULL,
+datMix <- function(dat, dist, discrete = NULL, theta.bound.list = NULL, MLE.function = NULL,
                    Hankel.method = NULL, Hankel.function = NULL){
 
-  ndistparams <- length(theta.bound.list)
-  formals.dist <- names(theta.bound.list)
-
-  if(!is.null(theta.bound.list)){
-    # check whether distribution is discrete
-    dist_call <- get(paste("r", dist, sep = ""))
-    rd.list <- theta.bound.list
-    rd.list <- lapply(rd.list, function(x) replace(x, x == Inf, 100))
-    rd.list <- lapply(rd.list, function(x) replace(x, x == -Inf, -100))
-    rd.list <- lapply(rd.list, function(x) runif(n = 1, min = x[1], max = x[2]))
-    rand <- do.call(dist_call, args = c(n = 1, rd.list))
-    if(is.integer(rand))
-      discrete <- TRUE
-    else discrete <- FALSE
-
-  }
 
   # return 'datMix' object with relevant attributes
   structure(class = "datMix", dist = dist,
@@ -754,28 +732,29 @@ print.datMix <- function(x, ...){
 
 #' @title Converting \code{rMix} to \code{datMix} Objects
 #'
-#' @description Converting an object of class \code{\link{rMix}} to an object of class \code{\link{datMix}}, so that it can be passed to functions estimating the mixture complexity.
+#' @description Function for converting objects of class \code{\link{rMix}} to objects of class \code{\link{datMix}}, so that they could be passed to functions estimating the mixture complexity.
 #'
 #' @usage
-#' RtoDat(obj, theta.bound.list = NULL, MLE.function = NULL, Hankel.method = NULL, 
-#'                                                         Hankel.function = NULL)
+#' RtoDat(obj, theta.bound.list = NULL, MLE.function = NULL, Hankel.method = NULL,
+#'        Hankel.function = NULL)
 #' @param obj object of class \code{rMix}.
-#' @param theta.bound.list a named list specifying the upper and the lower bound for the component parameters. The names of the list elements have to match the names of the formal arguments of the functions \code{ddist} and \code{rdist} exactly (the \code{dist} attribute is specified when creating the \code{Mix} object \code{obj}). For a gaussian mixture with \code{dist = norm}, the list elements would have to be named \code{mean} and \code{sd}, as these are the formal arguments used by \code{rnorm} and \code{dnorm}. Has to be supplied if a method that estimates the component weights and parameters is to be used.
-#' @param MLE.function function (or list of functions) which takes as input the data and gives as output the maximum likelihood estimator for the parameter(s) of a one component mixture (i.e. the standard MLE of the component distribution \code{dist}). If the component distribution has more than one parameter, a list of functions has to be supplied and the order of the MLE functions has to match the order of the component parameters in \code{theta.bound.list} (e.g. for a normal mixture, if the first entry of \code{theta.bound.list} is the bounds of the mean, then then first entry of \code{MLE.function} has to be the MLE of the mean). If this argument is supplied and the \code{\link{datMix}} object is handed over to a complexity estimation procedure relying on optimizing over a likelihood function, the \code{MLE.function} attribute will be used for the single component case. In case the objective function is either not a likelihood or corresponds to a mixture with more than 1 components, numerical optimization will be used based on \code{\link{Rsolnp}}'s function \code{\link[Rsolnp]{solnp}}, but \code{MLE.function} will be used to calculate the initial values passed to \code{solnp}. Specifying \code{MLE.function} is optional and if it is not, for example because the MLE solution does not exists in closed form, numerical optimization is used to find the relevant MLE's.
-#' @param Hankel.method character string in \code{c("explicit", "translation", "scale")},  specifying the method of estimating the moments of the mixing distribution used to calculate the relevant Hankel matrix. Has to be specified when using \code{nonparamHankel}, \code{paramHankel} or \code{paramHankel.scaled}. For further details see the details section of \code{\link{datMix}}.
-#' @param Hankel.function function needed for the moment estimation via \code{Hankel.method}. This normally depends on \code{Hankel.method} as well as \code{dist}. For further details see the details section of \code{\link{datMix}}.
-#' @return An object of class \code{datMix} with the following attributes (for further explanations see \code{\link{datMix}}):
-#'      \item{dist}{}
-#'      \item{discrete}{}
-#'      \item{theta.bound.list}{}
-#'      \item{MLE.function}{}
-#'      \item{Hankel.method}{}
-#'      \item{Hankel.function}{}
+#' @param theta.bound.list named list specifying the upper and lower bounds for the component parameters. The names of the list elements have to match the names of the formal arguments of the functions \code{ddist} and \code{rdist} exactly as specified in the distributions in \code{\link[stats]{distributions}}. For a gaussian mixture, the list elements would have to be named \code{mean} and \code{sd}, as these are the formal arguments used by \code{rnorm} and \code{dnorm}. Has to be supplied if a method that estimates the component weights and parameters is to be used.
+#' @param MLE.function function (or a list of functions) which takes the data as input and outputs the maximum likelihood estimator for the parameter(s) the component distribution \code{dist}. If the component distribution has more than one parameter, a list of functions has to be supplied and the order of the MLE functions has to match the order of the component parameters in \code{theta.bound.list} (e.g. for a normal mixture, if the first entry of \code{theta.bound.list} is the bounds of the mean, then then first entry of \code{MLE.function} has to be the MLE of the mean). If this argument is supplied and the \code{datMix} object is handed over to a complexity estimation procedure relying on optimizing over a likelihood function, the \code{MLE.function} attribute will be used for the single component case. In case the objective function is neither a likelihood nor corresponds to a mixture with more than 1 component, numerical optimization will be used based on \code{\link{Rsolnp}}'s function \code{\link[Rsolnp]{solnp}}, but \code{MLE.function} will be used to calculate the initial values passed to \code{solnp}. Specifying \code{MLE.function} is optional. If not supplied, for example because the MLE solution does not exist in a closed form, numerical optimization is used to find the relevant MLE.
+#' @param Hankel.method character string in \code{c("explicit", "translation", "scale")}, specifying the method of estimating the moments of the mixing distribution used to calculate the relevant Hankel matrix. Has to be specified when using \code{\link{nonparamHankel}}, \code{\link{paramHankel}} or \code{\link{paramHankel.scaled}}. For further details see the details section of \code{\link{datMix}}.
+#' @param Hankel.function function required for the moment estimation via \code{Hankel.method}. This normally depends on \code{Hankel.method} as well as \code{dist}. For further details see the \code{\link{datMix}} details section.
+#' @return Object of class \code{datMix} with the following attributes (for further explanations see above):
+#'      \item{dist}{character string giving the abbreviated name of the component distribution, such that the function \code{ddist} evaluates its density/mass and \code{rdist} generates random variates.}
+#'      \item{discrete}{logical flag indicating whether the mixture distribution is discrete.}
+#'      \item{theta.bound.list}{named list specifying the upper and lower bounds for the component parameters.}
+#'      \item{MLE.function}{function which computes the MLE of the component distribution \code{dist}.}
+#'      \item{Hankel.method}{character string taking on values \code{"explicit"}, \code{"translation"}, or \code{"scale"}, specifying the method of estimating the moments of the mixing distribution to compute the corresponding Hankel matrix.}
+#'      \item{Hankel.function}{function required for the moment estimation via \code{Hankel.method}. See details for more information.}
 #' @seealso \code{\link{datMix}} for direct generation of a \code{datMix} object from a vector of observations.
 #' @keywords cluster
 #' @examples
 #' ### generating 'Mix' object
-#' normLocMix <- Mix("norm", w = c(0.3, 0.4, 0.3), mean = c(10, 13, 17), sd = c(1, 1, 1))
+#' normLocMix <- Mix("norm", discrete = FALSE, w = c(0.3, 0.4, 0.3), mean = c(10, 13, 17),
+#'                   sd = c(1, 1, 1))
 #'
 #' ### generating 'rMix' from 'Mix' object (with 1000 observations)
 #' set.seed(1)
@@ -820,7 +799,7 @@ print.datMix <- function(x, ...){
 #' res <- paramHankel.scaled(normLoc.dM)
 #' plot(res)
 #'
-# @export RtoDat
+#' @export RtoDat
 RtoDat <- function(obj, theta.bound.list = NULL, MLE.function = NULL, Hankel.method = NULL,
                    Hankel.function = NULL){
 

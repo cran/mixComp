@@ -5,13 +5,13 @@
 \alias{paramHankel.scaled}
 \alias{print.paramEst}
 \alias{plot.paramEst}
-\title{Estimate a Mixture's Complexity (and Component Weights/Parameters) Based on Hankel Matrix}
+\title{Estimation of Mixture Complexity (and Component Weights/Parameters) Based on Hankel Matrix Approach}
 \usage{
 paramHankel(obj, j.max = 10, B = 1000, ql = 0.025, qu = 0.975, 
-                                 control = c(trace = 0), \dots)
+            control = c(trace = 0), \dots)
 
 paramHankel.scaled(obj, j.max = 10, B = 100, ql = 0.025, qu = 0.975, 
-                                     control = c(trace = 0), \dots)
+                   control = c(trace = 0), \dots)
 
 \method{plot}{paramEst}(x, mixture = TRUE, components = TRUE, ylim = NULL, cex.main = 0.9, ...)
 
@@ -38,21 +38,21 @@ paramHankel.scaled(obj, j.max = 10, B = 100, ql = 0.025, qu = 0.975,
 
 \item{x}{object of class \code{paramEst}.}
 
-\item{mixture}{logical indicating whether the estimated mixture density should be drawn, set to \code{TRUE} by default.}
+\item{mixture}{logical flag, indicating whether the estimated mixture density should be plotted, set to \code{TRUE} by default.}
 
-\item{components}{logical indicating whether the individual mixture components should be drawn, set to \code{TRUE} by default.}
+\item{components}{logical flag, indicating whether the individual mixture components should be plotted, set to \code{TRUE} by default.}
 
-\item{ylim}{range of y values to use; if not specified (or containing \code{NA}), the function tries to construct reasonable default values itself.}
+\item{ylim}{range of y values to use; if not specified (or containing \code{NA}), the function tries to construct reasonable default values.}
 
-\item{cex.main}{The magnification to be used for main titles relative to the current setting of \code{cex}, see \code{\link[graphics]{par}}.}
+\item{cex.main}{magnification to be used for main titles relative to the current setting of \code{cex}, see \code{\link[graphics]{par}}.}
 }
 \value{
 Object of class \code{paramEst} with the following attributes:
       \item{dat}{data based on which the complexity is estimated.}
-      \item{dist}{character string stating the (abbreviated) name of the component distribution, such that the function \code{ddist} evaluates its density function and \code{rdist} generates random numbers.}
+      \item{dist}{character string giving the abbreviated name of the component distribution, such that the function \code{ddist} evaluates its density/mass and \code{rdist} generates random variates.}
       \item{ndistparams}{integer specifying the number of parameters identifying the component distribution, i.e. if \eqn{\theta} is in \eqn{R^d} then \code{ndistparams}\eqn{ = d}.}
       \item{formals.dist}{string vector specifying the names of the formal arguments identifying the distribution \code{dist} and used in \code{ddist} and \code{rdist}, e.g. for a gaussian mixture (\code{dist = norm}) amounts to \code{mean} and \code{sd}, as these are the formal arguments used by \code{dnorm} and \code{rnorm}.}
-      \item{discrete}{logical indicating whether the underlying mixture distribution is discrete.}
+      \item{discrete}{logicalflag, indicating whether the underlying mixture distribution is discrete.}
       \item{mle.fct}{attribute \code{MLE.function} of \code{obj}.}
       \item{pars}{Say the complexity estimate is equal to some \eqn{j}. Then \code{pars} is a numeric vector of size \eqn{(d+1)*j-1} specifying the component weight and parameter estimates, given as 
 \deqn{(w_1, ... w_{j-1}, \theta 1_1, ... \theta 1_j, \theta 2_1, ... \theta d_j).}}
@@ -65,14 +65,14 @@ Estimation method of mixture complexity as well as component weights and paramet
 \details{
 Define \eqn{complexity} of a finite mixture \eqn{F} as the smallest integer \eqn{p}, such that its pdf/pmf \eqn{f} can be written as
 \deqn{f(x) = w_1*g(x;\theta _1) + \dots + w_p*g(x;\theta _p).}
-The \code{paramHankel} procedure initially assumes the mixture to only contain a single component, setting \eqn{j = 1}, and then sequentially tests \eqn{p = j} versus \eqn{p = j+1} for \eqn{j = 1,2, \dots}, until the algorithm terminates. To do so, it determines the MLE for a \eqn{j}-component mixture, generates \code{B} parametric bootstrap samples of size \eqn{n} from the distribution the MLE corresponds to and calculates \code{B} determinants of the corresponding \eqn{(j+1)x(j+1)} Hankel matrices of the first \eqn{2j} raw moments of the mixing distribution (for details see \code{\link{nonparamHankel}}). The null hypothesis \eqn{H_0: p = j} is rejected and \eqn{j} increased by 1 if the determinant value based on the original data lies outside of the interval \eqn{[ql, qu]}, a range specified by the \code{ql} and \code{qu} empirical quantiles of the bootstrapped determinants. Otherwise, \eqn{j} is returned as the complexity estimate.
+The \code{paramHankel} procedure initially assumes that the mixture only contains one component, setting \eqn{j = 1}, then sequentially tests \eqn{p = j} versus \eqn{p = j+1} for \eqn{j = 1,2, \dots}. It determines the MLE for a \eqn{j}-component mixture, generates \code{B} parametric bootstrap samples of size \eqn{n} from the distribution the MLE corresponds to and calculates \code{B} determinants of the corresponding \eqn{(j+1) x (j+1)} Hankel matrices of the first \eqn{2j} raw moments of the mixing distribution (for details see \code{\link{nonparamHankel}}). The null hypothesis \eqn{H_0: p = j} is rejected and \eqn{j} increased by 1 if the determinant value based on the original data lies outside of the interval \eqn{[ql, qu]}, a range specified by \code{ql} and \code{qu}, empirical quantiles of the bootstrapped determinants. Otherwise, \eqn{j} is returned as the complexity estimate.
 \code{paramHankel.scaled} functions similarly to \code{paramHankel} with the exception that the bootstrapped determinants are scaled by the empirical standard deviation of the bootstrap sample. To scale the original determinant, \code{B} nonparametric bootstrap samples of size \eqn{n} are generated from the data, the corresponding determinants are calculated and their empirical standard deviation is used.
-The MLEs are calculated via the \code{MLE.function} attribute (of the \code{datMix} object \code{obj}) for \eqn{j = 1}, if it is supplied. For all other \eqn{j} (and also for \eqn{j = 1} in case \code{MLE.function = NULL}) the solver \code{\link[Rsolnp]{solnp}} is used to calculate the minimum of the negative log likelihood. The initial values supplied to the solver are calculated as follows: the data is clustered into \eqn{j} groups by the function \code{\link[cluster]{clara}} and the data corresponding to each group is given to \code{MLE.function} (if supplied to the \code{datMix} object, otherwise numerical optimization is used here as well). The size of the groups is taken as initial component weights and the MLE's are taken as initial component parameter estimates.
+The MLEs are calculated via the \code{MLE.function} attribute of the \code{datMix} object \code{obj} for \eqn{j = 1}, if it is supplied. For all other \eqn{j} (and also for \eqn{j = 1} in case \code{MLE.function = NULL}) the solver \code{\link[Rsolnp]{solnp}} is used to calculate the minimum of the negative log-likelihood. The initial values supplied to the solver are calculated as follows: the data is clustered into \eqn{j} groups by the function \code{\link[cluster]{clara}} and the data corresponding to each group is supplied to \code{MLE.function} (if supplied to the \code{datMix} object, otherwise numerical optimization is used). The size of the groups is taken as initial component weights and the MLE's are taken as initial component parameter estimates.
 }
 \examples{
 
 ## create 'Mix' object
-poisMix <- Mix("pois", w = c(0.45, 0.45, 0.1), lambda = c(1, 5, 10))
+poisMix <- Mix("pois", discrete = TRUE, w = c(0.45, 0.45, 0.1), lambda = c(1, 5, 10))
 
 ## create random data based on 'Mix' object (gives back 'rMix' object)
 set.seed(1)
@@ -80,9 +80,7 @@ poisRMix <- rMix(1000, obj = poisMix)
 
 ## create 'datMix' object for estimation
 # generate list of parameter bounds
-poisList <- vector(mode = "list", length = 1)
-names(poisList) <- "lambda"
-poisList$lambda <- c(0, Inf)
+poisList <- list("lambda" = c(0, Inf))
 
 # generate MLE function
 MLE.pois <- function(dat){

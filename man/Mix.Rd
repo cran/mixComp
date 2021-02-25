@@ -4,104 +4,53 @@
 \alias{Mix}
 \alias{print.Mix}
 \alias{is.Mix}
-\alias{plot.Mix}
 \title{Mixtures of Univariate Distributions}
 \usage{
-Mix(dist, w=NULL, theta.list=NULL, name=NULL, \dots)
+Mix(dist, discrete, w = NULL, theta.list = NULL, name = NULL, \dots)
 
 is.Mix(x)
-
-\method{plot}{Mix}(
-  x,
-  ylim,
-  xlim = NULL,
-  xout = NULL,
-  n = 511,
-  type = NULL,
-  xlab = "x",
-  ylab = "f(x)",
-  main = attr(obj, "name"),
-  lwd = 1.4,
-  log = FALSE,
-  components = TRUE,
-  h0 = FALSE,
-  parComp = list(col = NULL, lty = 3, lwd = 1),
-  parH0 = list(col = NULL, lty = 3, lwd = 1),
-  ...
-)
 
 \method{print}{Mix}(x, ...)
 }
 \arguments{
-\item{dist}{a character string giving the (abbreviated) name of the component distribution, such that the function \code{ddist} evaluates its density function and \code{rdist} generates random numbers. For example, to create a gaussian mixture, \code{dist} has to be specified as \code{norm} instead of \code{normal}, \code{gaussian} etc. for the package to find the functions \code{dnorm} and \code{rnorm}.}
+\item{dist}{character string providing the (abbreviated) name of the component distribution, such that the function \code{ddist} evaluates its density function and \code{rdist} generates random numbers. The function sources functions for the density/mass estimation and random variate generation from distributions in \code{\link[stats]{distributions}}, so the abbreviations should be specified accordingly. Thus to create a gaussian mixture, set \code{dist = "norm"}, for a poisson mixture, set \code{dist = "pois"}. The \code{Mix} function will find the functions \code{dnorm}, \code{rnorm} and \code{dpois}, \code{rpois} respectively.}
 
-\item{w}{numeric vector of length \eqn{p}, specifying the mixture weights \eqn{w[i]} of the components, \eqn{i = 1,\dots,p}. If the weights don't add up to 1, they will be scaled accordingly. Uses equal weights for all components by default.}
+\item{discrete}{logical flag, should be set to TRUE if the mixture distribution is discrete and to FALSE if continuous.}
 
-\item{theta.list}{named list specifying the component parameters. The names of the list elements have to match the names of the formal arguments of the functions \code{ddist} and \code{rdist} exactly. For a gaussian mixture, the list elements would have to be named \code{mean} and \code{sd}, as these are the formal arguments used by \code{rnorm} and \code{dnorm}. Alternatively, the component parameters can be supplied directly as named vectors of length \eqn{p} via \dots}
+\item{w}{numeric vector of length \eqn{p}, specifying the mixture weights \eqn{w[i]} of the components, \eqn{i = 1,\dots,p}. If the weights do not add up to 1, they will be scaled accordingly. Equal weights for all components are used by default.}
+
+\item{theta.list}{named list specifying the component parameters. The names of the list elements have to match the names of the formal arguments of the functions \code{ddist} and \code{rdist} exactly. For a gaussian mixture, the list elements would have to be named \code{mean} and \code{sd}, as these are the formal arguments used by \code{rnorm} and \code{dnorm} functions from \code{\link[stats]{distributions}}. Alternatively, the component parameters can be supplied directly as named vectors of length \eqn{p} via \dots}
 
 \item{name}{optional name tag of the result (used for printing and plotting).}
 
-\item{\dots}{further arguments passed to the function plotting the mixture density.}
+\item{\dots}{\describe{
+     \item{in \code{Mix()}:}{alternative way of supplying the component parameters (instead of using \code{theta.list}).}
+     \item{in \code{print.Mix()}:}{further arguments passed to the print method.}
+}}
 
-\item{x}{object of class \code{Mix}.}
-
-\item{ylim}{range of y values to use; if not specified (or containing \code{NA}), the function tries to construct reasonable default values.}
-
-\item{xlim}{range of x values to use; particularly important if \code{xout} is not specified. If both are left unspecified, the function tries to construct reasonable default values.}
-
-\item{xout}{numeric or \code{NULL} giving the abscissae at which to draw the density.}
-
-\item{n}{number of points to generate if \code{xout} is unspecified (for continuous distributions).}
-
-\item{type}{character denoting the type of plot, see e.g. \code{\link[graphics]{lines}}. Defaults to \code{"l"} if the mixture distribution is continuous and to \code{"h"} otherwise.}
-
-\item{xlab, ylab}{labels for the x and y axis with defaults.}
-
-\item{main}{main title of plot, defaulting to the \code{\link{Mix}} name.}
-
-\item{lwd}{line width for plotting with a non-standard default.}
-
-\item{log}{logical; if \code{TRUE}, probabilities/densities \eqn{f} are plotted as \eqn{log(f)}. Only works if \code{components} is set to \code{FALSE}.}
-
-\item{components}{logical indicating whether the individual mixture components should be plotted, set to \code{TRUE} by default.}
-
-\item{h0}{logical indicating whether the line \eqn{y = 0} should be drawn.}
-
-\item{parComp}{graphical parameters for drawing the individual components if \code{components} is set to \code{TRUE}.}
-
-\item{parH0}{graphical parameters for drawing the line \eqn{y = 0} if \code{h0} is set to \code{TRUE}.}
+\item{x}{\describe{
+     \item{in \code{is.Mix()}:}{returns TRUE if the argument is a \code{datMix} object and FALSE otherwise.}
+     \item{in \code{print.Mix()}:}{object of class \code{Mix}.}
+}}
 }
 \value{
 An object of class \code{Mix} (implemented as a matrix) with the following attributes:
     \item{dim}{dimensions of the matrix.}
     \item{dimnames}{a \code{\link[base]{dimnames}} attribute for the matrix.}
-    \item{name}{as entered via \code{name}.}
-    \item{dist}{as entered via \code{dist}.}
-    \item{discrete}{logical indicating whether the mixture distribution is discrete.}
-    \item{theta.list}{as entered via \code{theta.list}.}
+    \item{name}{optional name tag for the result passed on to printing and plotting methods.}
+    \item{dist}{character string giving the abbreviated name of the component distribution, such that the function \code{ddist} evaluates its density/mass and \code{rdist} generates random variates.}
+    \item{discrete}{logical flag indicating whether the mixture distribution is discrete.}
+    \item{theta.list}{named list specifying component parameters.}
 }
 \description{
-Objects of class \code{Mix} represent finite mixtures of any univariate distribution. Methods for construction, printing and plotting are provided.
-
-\code{plot} method for \code{\link{Mix}} objects visualizing the mixture density, optionally showing the component densities.
-}
-\details{
-Note that the \code{Mix} function will change the random number generator (RNG) state.
+Function constructing objects of class \code{Mix} that represent finite mixtures of any univariate distribution. Additionally methods for printing and plotting are provided.
 }
 \examples{
 
 # define 'Mix' object
-normLocMix <- Mix("norm", w = c(0.3, 0.4, 0.3), mean = c(10, 13, 17), sd = c(1, 1, 1))
-poisMix <- Mix("pois", w = c(0.45, 0.45, 0.1), lambda = c(1, 5, 10))
-
-# plot 'Mix' object
-plot(normLocMix)
-plot(poisMix)
-
-
-# define 'Mix' object
-normLocMix <- Mix("norm", w = c(0.3, 0.4, 0.3), mean = c(10, 13, 17), sd = c(1, 1, 1))
-poisMix <- Mix("pois", w = c(0.45, 0.45, 0.1), lambda = c(1, 5, 10))
+normLocMix <- Mix("norm", discrete = FALSE, w = c(0.3, 0.4, 0.3), mean = c(10, 13, 17),
+                  sd = c(1, 1, 1))
+poisMix <- Mix("pois", discrete = TRUE, w = c(0.45, 0.45, 0.1), lambda = c(1, 5, 10))
 
 # plot 'Mix' object
 plot(normLocMix)
@@ -109,8 +58,6 @@ plot(poisMix)
 
 }
 \seealso{
-\code{\link{dMix}} for the density, \code{\link{rMix}} for random numbers (and construction of an \code{rMix} object) and \code{plot.Mix} for the plot method.
-
-\code{\link{Mix}} for the construction of \code{Mix} objects, \code{\link{dMix}} for the density of a mixture.
+\code{\link{dMix}} for the density, \code{\link{rMix}} for random numbers (and construction of an \code{rMix} object) and \code{\link{plot.Mix}} for the plot method.
 }
 \keyword{cluster}

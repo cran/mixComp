@@ -4,27 +4,11 @@
 \alias{rMix}
 \alias{is.rMix}
 \alias{print.rMix}
-\alias{plot.rMix}
-\title{Generate a Random Sample from a Mixture Distribution}
+\title{Random Variate Generation from a Mixture Distribution}
 \usage{
 rMix(n, obj)
 
 is.rMix(x)
-
-\method{plot}{rMix}(
-  x,
-  xlab = attr(obj, "name"),
-  ylim = NULL,
-  main = paste("Histogram of", attr(obj, "name")),
-  breaks = NULL,
-  col = "grey",
-  components = TRUE,
-  stacked = FALSE,
-  component.colors = NULL,
-  freq = TRUE,
-  plot = TRUE,
-  ...
-)
 
 \method{print}{rMix}(x, ...)
 }
@@ -33,70 +17,41 @@ is.rMix(x)
 
 \item{obj}{object of class \code{\link{Mix}}.}
 
-\item{x}{object of class \code{rMix}.}
+\item{x}{\describe{
+     \item{in \code{is.rMix()}:}{R object.}
+     \item{in \code{print.rMix()}:}{object of class \code{\link{rMix}}.}
+}}
 
-\item{xlab}{label for the x axis with default.}
-
-\item{ylim}{range of y values to use; if not specified (or containing \code{NA}), default values are used.}
-
-\item{main}{main title of the plot with default.}
-
-\item{breaks}{see \code{\link[graphics]{hist}}. If left unspecified the function tries to construct reasonable default values.}
-
-\item{col}{a colour to be used to fill the bars of the histogram evaluated on the whole data.}
-
-\item{components}{logical indicating whether the plot should show to which component the observations belong (either by plotting individual histograms or by overlaying a stacked barplot), defaulting to \code{TRUE}. Ignored if \code{plot} is \code{FALSE}.}
-
-\item{stacked}{logical indicating whether the component plots should be stacked or plotted over one another, defaulting to \code{FALSE}. Ignored if \code{components} is \code{FALSE} or ignored itself.}
-
-\item{component.colors}{the colors for the component plots. If left unspecified default colors are used.}
-
-\item{freq}{logical, if \code{TRUE}, the histogram graphic is a representation of frequencies, if \code{FALSE}, probability densities. See \code{\link[graphics]{hist}}.}
-
-\item{plot}{logical, if \code{TRUE} (default), a histogram is plotted, otherwise a list of breaks and counts is returned. See \code{\link[graphics]{hist}}.}
-
-\item{\dots}{further arguments passed to the histogram function evaluated on the whole data as well as the component data (if \code{components} is \code{TRUE} and \code{stacked} is \code{FALSE}).}
+\item{\dots}{further arguments passed to the print method.}
 }
 \value{
 An object of class \code{\link{rMix}} with the following attributes (for further explanations see \code{\link{Mix}}):
     \item{name}{name of the \code{Mix} object that was given as input.}
     \item{dist}{character string stating the (abbreviated) name of the component distribution, such that the function \code{ddist} evaluates its density function and \code{rdist} generates random numbers.}
-    \item{discrete}{logical indicating whether the underlying mixture distribution is discrete.}
+    \item{discrete}{logical flag indicating whether the underlying mixture distribution is discrete.}
     \item{theta.list}{named list specifying the parameter values of the \eqn{p} components.}
-    \item{w}{numeric vector of length \eqn{p}, specifying the mixture weights \eqn{w[i]} of the components, \eqn{i = 1,\dots,p}.}
+    \item{w}{numeric vector of length \eqn{p} specifying the mixture weights \eqn{w[i]} of the components, \eqn{i = 1,\dots,p}.}
     \item{indices}{numeric vector of length \code{n} containing integers between \eqn{1} and \eqn{p} specifying which mixture component each observation belongs to.}
 }
 \description{
-Generate a random sample of size \code{n}, distributed according to a mixture specified as \code{\link{Mix}} object. Returns an object of class \code{\link{rMix}}.
-
-plot method for \code{rMix} objects, plotting the histogram of the random sample, with the option of additionally plotting the components (stacked or plotted over one another).
+Function for generating a random sample of size \code{n}, distributed according to a mixture specified as \code{\link{Mix}} object. Returns an object of class \code{\link{rMix}}.
 }
 \details{
-For a mixture of \eqn{p} components, generate the number of observations in each component as multinomial, and then use an implemented random variate generation function for each component. The integer (multinomial) numbers are generated via \code{\link[base]{sample}}.
+For a mixture of \eqn{p} components, generates the number of observations in each component as multinomial, and then use an implemented random variate generation function for each component. The integer (multinomial) numbers are generated via \code{\link[base]{sample}}.
 }
 \examples{
 
 # define 'Mix' object
-normLocMix <- Mix("norm", w = c(0.3, 0.4, 0.3), mean = c(10, 13, 17), sd = c(1, 1, 1))
+normLocMix <- Mix("norm", discrete = FALSE, w = c(0.3, 0.4, 0.3), mean = c(10, 13, 17),
+                  sd = c(1, 1, 1))
 
 # generate n random samples
 set.seed(1)
 x <- rMix(1000, normLocMix)
 hist(x)
 
-
-# define 'Mix' object
-normLocMix <- Mix("norm", w = c(0.3, 0.4, 0.3), mean = c(10, 13, 17), sd = c(1, 1, 1))
-
-# generate n random samples
-set.seed(1)
-x <- rMix(1000, normLocMix)
-plot(x)
-
 }
 \seealso{
-\code{\link{dMix}} for the density, \code{\link{Mix}} for the construction of \code{Mix} objects and \code{plot.rMix} for the plot method.
-
-\code{\link{rMix}} for the creation of \code{rMix} objects.
+\code{\link{dMix}} for the density, \code{\link{Mix}} for the construction of \code{Mix} objects and \code{\link{plot.rMix}} for the plot method.
 }
 \keyword{cluster}

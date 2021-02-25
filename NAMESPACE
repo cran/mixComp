@@ -31,9 +31,11 @@ importFrom("kdensity", kdensity)
 export(
     Mix,
     is.Mix,
+    plot.Mix,
     dMix,
     rMix,
     is.rMix,
+    plot.rMix,
     datMix,
     is.datMix,
     RtoDat,
@@ -46,7 +48,7 @@ export(
     hellinger.boot.disc,
     hellinger.cont,
     hellinger.boot.cont,
-    mix.lrt
+    mix.lrt  
    )
 
 

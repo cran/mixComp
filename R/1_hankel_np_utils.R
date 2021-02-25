@@ -166,8 +166,9 @@
 ##          are of the correct form
 
 .input.checks.functions <- function(obj, B, j.max, ql, qu, quantile, n.inf, thrshL2,
-                                    thrshHel, discrete, continuous, pen.function, scaled, Hankel,
-                                    param, bandwidth, sample.n, sample.plot){
+                                    thrshHel, pen.function, scaled, Hankel, param,
+                                    bandwidth, sample.n, sample.plot, assert_discrete,
+                                    assert_continuous){
 
   if(Hankel == TRUE){
     # if the function uses the Hankel matrix of the moments of the mixing distribution
@@ -189,6 +190,18 @@
     # if the functions estimates the weights as well as the component parameters
     if(is.null(attr(obj, "theta.bound.list")))
       stop("'theta.bound.list' has to be specified as a datMix object attribute!")
+    
+    if(is.null(attr(obj, "discrete"))) stop("'discrete' has to be specified as a datMix object attribute!")
+    
+    if(missing(assert_discrete)){} # allowed be missing, needed for discrete minimum distance
+    else if(attr(obj, "discrete") != TRUE)
+      stop("The 'discrete' attribute of the Rdat object is not set to TRUE, however
+         this function only works for discrete data.")
+    
+    if(missing(assert_continuous)){} # allowed be missing, needed for continuous minimum distance
+    else if(attr(obj, "discrete") != FALSE)
+      stop("The 'discrete' attribute of the Rdat object is not set to FALSE, however
+         this function only works for continuous data.")
   }
 
   if(is.null(obj) || !is.datMix(obj)) stop("'obj' has to be a 'datMix' object!")
@@ -250,18 +263,6 @@
     warning("While being used in Woo & Sriram's original paper, asymptotically, the threshold 'AIC' does not go to 0 slower than the difference in squared Hellinger distances once the correct order p is reached and the estimator is therefore not consistent.",
             call. = FALSE)
 
-  if(missing(discrete)){} # allowed be missing
-  # but if it is not missing needs to fulfil requirements
-  else if(is.null(discrete) || discrete != TRUE)
-    stop("The 'discrete' attribute of the Rdat object is not set to TRUE, however
-         this function only works for discrete data.")
-
-  if(missing(continuous)){} # allowed be missing
-  # but if it is not missing needs to fulfil requirements
-  else if(is.null(continuous) || continuous != TRUE)
-    stop("The 'discrete' attribute of the Rdat object is set to TRUE, however
-         this function only works for continuous data.")
-
   if(missing(bandwidth)){} # allowed be missing
   # but if it is not missing needs to fulfil requirements
   else if(is.null(bandwidth) ||
@@ -314,14 +315,14 @@
 ## Purpose: function returning the vector of estimated determinants for orders up to
 ##          j.max; returns an object of class "hankDet"
 
-#' @title Estimate Mixture Complexity Based on Hankel Matrix
+#' @title Estimation of Mixture Complexity Based on Hankel Matrix
 #'
 #' @description Estimation of mixture complexity based on estimating the determinant of the Hankel matrix of the moments of the mixing distribution. The estimated determinants can be scaled and/or penalized.
 #'
 #' @details Define the \eqn{complexity} of a finite mixture \eqn{F} as the smallest integer \eqn{p}, such that its pdf/pmf \eqn{f} can be written as
 #' \deqn{f(x) = w_1*g(x;\theta _1) + \dots + w_p*g(x;\theta _p).}
-#' \code{nonparamHankel} estimates \eqn{p} by iteratively increasing the assumed complexity \eqn{j} and calculating the determinant of the \eqn{(j+1)}x\eqn{(j+1)} Hankel matrix made up of the first \eqn{2j} raw moments of the mixing distribution. As shown by Dacunha-Castelle & Gassiat (1997), once the correct complexity is reached (i.e. for all \eqn{j >= p}), this determinant is zero.
-#' This suggests an estimation procedure for \eqn{p} based on initially finding a consistent estimator of the moments of the mixing distribution and then choosing the estimator \eqn{estim_p} as the value of \eqn{j} which yields a sufficiently small value of the determinant. Since the estimated determinant is close to 0 for all \eqn{j >= p}, this could lead to choosing \eqn{estim_p} rather larger than the true value. The function therefore returns all estimated determinant values corresponding to complexities up to \code{j.max}, so that the user can pick the lowest \eqn{j} generating a sufficiently small determinant. In addition, the function allows the inclusion of a penalty term as a function of the sample size \code{n} and the currently assumed complexity \code{j} which will be added to the determinant value (by supplying \code{pen.function}), and/or scaling of the determinants (by setting \code{scaled  = TRUE}). For scaling, a nonparametric bootstrap is used to calculate the covariance of the estimated determinants, with \code{B} being the size of the bootstrap sample. The inverse of the square root of this covariance matrix (i.e. the matrix \eqn{S^{(-1)}} such that \eqn{A = SS^T}, where A is the covariance matrix) is then multiplied with the estimated determinant vector to get the scaled determinant vector.
+#' \code{nonparamHankel} estimates \eqn{p} by iteratively increasing the assumed complexity \eqn{j} and calculating the determinant of the \eqn{(j+1) x (j+1)} Hankel matrix made up of the first \eqn{2j} raw moments of the mixing distribution. As shown by Dacunha-Castelle & Gassiat (1997), once the correct complexity is reached (i.e. for all \eqn{j >= p}), this determinant is zero.
+#' This suggests an estimation procedure for \eqn{p} based on initially finding a consistent estimator of the moments of the mixing distribution and then choosing the estimator \eqn{estim_p} as the value of \eqn{j} which yields a sufficiently small value of the determinant. Since the estimated determinant is close to 0 for all \eqn{j >= p}, this could lead to choosing \eqn{estim_p} rather larger than the true value. The function therefore returns all estimated determinant values corresponding to complexities up to \code{j.max}, so that the user can pick the lowest \eqn{j} generating a sufficiently small determinant. In addition, the function allows the inclusion of a penalty term as a function of the sample size \code{n} and the currently assumed complexity \code{j} which will be added to the determinant value (by supplying \code{pen.function}), and/or scaling of the determinants (by setting \code{scaled  = TRUE}). For scaling, a nonparametric bootstrap is used to calculate the covariance of the estimated determinants, with \code{B} being the size of the bootstrap sample. The inverse of the square root of this covariance matrix (i.e. the matrix \eqn{S^{(-1)}} such that \eqn{A = SS} (see \code{\link[expm]{sqrtm}}), where A is the covariance matrix) is then multiplied with the estimated determinant vector to get the scaled determinant vector. Note that in the case of the scaled version the penalty function chosen should be multiplied by \eqn{\sqrt{n}} before it is entered as \code{pen.function}: let \eqn{S*} denote a \eqn{j_m x j_m} covariance matrix of the determinants calculated for the \eqn{b}th bootstrap sample (\eqn{b=1,...,B} and j=1,...,j_m). Then \eqn{S*} goes to \eqn{S/n} as \eqn{B,n} go to infinity. Write \deqn{S*^{-1/2}=\sqrt{n}*\hat{S}^{-1/2}.} Define the rescaled vector \deqn{(y_1,...,y_{j_m})^T = \sqrt{n}*\hat{S}^{-1/2}(\hat{d}_1,...,\hat{d}_{j_m})^T.} Then the creterion to be minimized becomes  \deqn{|y_j|  + pen.function*\sqrt{n}.} See further sections for examples.
 #' For a thorough discussion of the methods that can be used for the estimation of the moments see the details section of \code{\link{datMix}}.
 #'
 #' @aliases nonparamHankel print.hankDet plot.hankDet
@@ -329,8 +330,8 @@
 #' nonparamHankel(obj, j.max = 10, pen.function = NULL, scaled = FALSE, B = 1000, ...)
 #' @param obj object of class \code{\link{datMix}}.
 #' @param j.max integer specifying the maximal number of components to be considered.
-#' @param pen.function a function with arguments \code{j} and \code{n} specifying the penalty added to the determinant value given sample size \eqn{n} and the currently assumed complexity \eqn{j}. If left empty no penalty will be added. If non-empty and \code{scaled} is \code{TRUE}, the penalty function will be added after the determinants are scaled.
-#' @param scaled logical specifying whether the vector of estimated determinants should be scaled.
+#' @param pen.function function with arguments \code{j} and \code{n} specifying the penalty added to the determinant value in the objective function, given sample size \eqn{n} and the assumed complexity at current iteration \eqn{j}. If left empty, no penalty will be added. If non-empty and \code{scaled} is \code{TRUE}, the penalty function will be added after the determinants are scaled.
+#' @param scaled logical flag specifying whether the vector of estimated determinants should be scaled.
 #' @param B integer specifying the number of bootstrap replicates used for scaling of the determinants. Ignored if \code{scaled} is \code{FALSE}.
 #' @param x object of class \code{hankDet}.
 #' @param type character denoting type of plot, see, e.g. \code{\link[graphics]{lines}}. Defaults to \code{"b"}.
@@ -343,17 +344,17 @@
 #'      \item{in \code{plot.hankDet()}:}{further arguments passed to \code{\link[base]{plot}}.}
 #'      \item{in \code{print.hankDet()}:}{further arguments passed to \code{\link[base]{print}}.}
 #'   }
-#' @return The vector of estimated determinants (optionally scaled and/or penalized), given back as an object of class \code{hankDet} with the following attributes:
-#'       \item{scaled}{logical indicating whether the determinants are scaled.}
-#'       \item{pen }{logical indicating whether a penalty was added to the determinants.}
-#'       \item{dist }{character string stating the (abbreviated) name of the component distribution, such that the function \code{ddist} evaluates its density function and \code{rdist} generates random numbers.}
+#' @return Vector of estimated determinants (optionally scaled and/or penalized) as an object of class \code{hankDet} with the following attributes:
+#'       \item{scaled}{logical flag indicating whether the determinants are scaled.}
+#'       \item{pen}{logical flag indicating whether a penalty was added to the determinants.}
+#'       \item{dist}{character string stating the (abbreviated) name of the component distribution, such that the function \code{ddist} evaluates its density function and \code{rdist} generates random numbers.}
 #' @references D. Dacunha-Castelle and E. Gassiat, "The estimation of the order of a mixture model", Bernoulli, Volume 3, Number 3, 279-299, 1997.
-#' @seealso \code{\link{paramHankel}} for a similar approach which estimates the component weights and parameters on top of the complexity, \code{\link{datMix}} for the creation of the \code{\link{datMix}} object.
+#' @seealso \code{\link{paramHankel}} for a similar approach which additionally estimates the component weights and parameters, \code{\link{datMix}} for construction of a \code{\link{datMix}} object.
 #' @keywords cluster
 #' @examples
-#'
+#' \donttest{
 #' ## create 'Mix' object
-#' geomMix <- Mix("geom", w = c(0.1, 0.6, 0.3), prob = c(0.8, 0.2, 0.4))
+#' geomMix <- Mix("geom", discrete = TRUE, w = c(0.1, 0.6, 0.3), prob = c(0.8, 0.2, 0.4))
 #'
 #' ## create random data based on 'Mix' object (gives back 'rMix' object)
 #' set.seed(1)
@@ -372,16 +373,28 @@
 #' geom.dM <- RtoDat(geomRMix, Hankel.method = "explicit",
 #'                  Hankel.function = explicit.fct.geom)
 #'
-#' ## function for penalization
+#' ## function for penalization w/o scaling
 #' pen <- function(j, n){
 #'   (j*log(n))/(sqrt(n))
 #' }
 #'
-#' ## estimate determinants
+#' ## estimate determinants w/o scaling
 #' set.seed(1)
-#' geomdets_pen <- nonparamHankel(geom.dM, pen.function = pen, j.max = 5)
+#' geomdets_pen <- nonparamHankel(geom.dM, pen.function = pen, j.max = 5,
+#'                                scaled = FALSE)
 #' plot(geomdets_pen, main = "Three component geometric mixture")
 #'
+#'
+#' ## function for penalization with scaling
+#' pen <- function(j, n){
+#'   j*log(n)
+#' }
+#'
+#' ## estimate determinants using the same penalty with scaling
+#' geomdets_pen <- nonparamHankel(geom.dM, pen.function = pen, j.max = 5,
+#'                                scaled = TRUE)
+#' plot(geomdets_pen, main = "Three component geometric mixture")
+#' }
 #' @rdname nonparamHankel
 #' @export nonparamHankel
 nonparamHankel <- function(obj, j.max = 10, pen.function = NULL, scaled = FALSE, B = 1000,
@@ -408,7 +421,7 @@ nonparamHankel <- function(obj, j.max = 10, pen.function = NULL, scaled = FALSE,
   } else {
 
     fun <- .moments.map(Hankel.method = Hankel.method)
-    res <- fun(dat = dat, j.max = j.max, Hankel.function = Hankel.function)
+    res <- abs(fun(dat = dat, j.max = j.max, Hankel.function = Hankel.function))
   }
 
   if (pen == TRUE) res <- res + pen.function(j = 1:j.max, n = n)
